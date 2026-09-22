@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0a18">
+  <title>Planeta Jardín 🌹🌻</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="loading">
+    <div class="loader">
+      <div class="loader-planet"></div>
+      <div class="loader-flower">🌻</div>
+    </div>
+    <p class="loading-text">Plantando el jardín…</p>
+  </div>
+
+  <div id="canvas-container"></div>
+
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="hud-pill">
+        <span class="dot"></span>
+        <span id="hud-location">Esmeralda · Jardín Eterno</span>
+      </div>
+    </div>
+
+    <div class="hud-crosshair"></div>
+
+    <div class="hud-bottom">
+      <div class="hud-hint desktop-only">
+        <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> mover · <kbd>Shift</kbd> correr · <kbd>Click</kbd> bloquear mouse · <kbd>Esc</kbd> liberar
+      </div>
+      <div class="hud-hint mobile-only">
+        <span class="hint-side">◀ izquierda: mover</span>
+        <span class="hint-side">derecha: mirar ▶</span>
+      </div>
+    </div>
+
+    <!-- Joystick visual (solo móvil) -->
+    <div id="joystick-base" class="mobile-only">
+      <div id="joystick-knob"></div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
