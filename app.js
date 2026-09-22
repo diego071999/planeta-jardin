@@ -1,8 +1,8 @@
 /* ============================================================
-   PLANETA JARDÍN — Primera Persona
+   PLANETA JARDÍN v2 — Primera Persona
    Three.js r160 · ES Modules
+   Más rosas · Mariposas mejoradas · Carteles bien esparcidos · Árbol grande
    ============================================================ */
-
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
@@ -10,19 +10,20 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
    CONFIGURACIÓN
    ============================================================ */
 const CFG = {
-  planetRadius:     6.5,
+  planetRadius:     10,
   eyeHeight:        1.55,
-  walkSpeed:        3.2,
-  runSpeed:         5.5,
+  walkSpeed:        4.5,
+  runSpeed:         7.5,
   lookSensDesktop:  0.0022,
   lookSensMobile:   0.0055,
-  sunflowersCount:  420,
-  rosesCount:       780,
-  grassCount:       380,
+  sunflowersCount:  600,
+  rosesCount:       2200,
+  orchidsCount:     350,
+  daisiesCount:     300,
+  grassCount:       500,
+  butterfliesCount: 240,       // más mariposas
   starsCount:       3500,
-  signTheta:        0,          // longitud (radianes) sobre el ecuador
-  signBoardHeight:  1.65,       // altura del centro del cartel sobre el suelo
-  startTheta:       0.42,       // posición inicial del jugador
+  startTheta:       0.55,
 };
 
 /* ============================================================
@@ -30,7 +31,7 @@ const CFG = {
    ============================================================ */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0a0a18);
-scene.fog = new THREE.FogExp2(0x0a0a18, 0.008);
+scene.fog = new THREE.FogExp2(0x0a0a18, 0.005);
 
 const camera = new THREE.PerspectiveCamera(
   72, window.innerWidth / window.innerHeight, 0.05, 3000
@@ -62,41 +63,33 @@ warmFill.position.set(-20, 5, -15);
 scene.add(warmFill);
 
 /* ============================================================
-   TEXTURA DE CÉSPED PROCEDURAL
+   TEXTURA DE CÉSPED
    ============================================================ */
 function makeGrassTexture() {
   const c = document.createElement('canvas');
   c.width = c.height = 1024;
   const ctx = c.getContext('2d');
 
-  // Base verde
   ctx.fillStyle = '#4d7a2d';
   ctx.fillRect(0, 0, 1024, 1024);
 
-  // Manchas grandes de tono variable
-  for (let i = 0; i < 350; i++) {
+  for (let i = 0; i < 400; i++) {
     const x = Math.random() * 1024;
     const y = Math.random() * 1024;
-    const r = 15 + Math.random() * 80;
+    const r = 15 + Math.random() * 90;
     const g = 60 + Math.random() * 80;
     ctx.fillStyle = `rgba(${(g * 0.5) | 0}, ${g | 0}, ${(g * 0.3) | 0}, 0.16)`;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
   }
 
-  // Manchas oscuras
   for (let i = 0; i < 250; i++) {
     const x = Math.random() * 1024;
     const y = Math.random() * 1024;
     const r = 8 + Math.random() * 45;
-    ctx.fillStyle = `rgba(20, 45, 10, 0.15)`;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle = 'rgba(20, 45, 10, 0.15)';
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
   }
 
-  // Césped fino (puntitos)
   for (let i = 0; i < 40000; i++) {
     const x = Math.random() * 1024;
     const y = Math.random() * 1024;
@@ -107,7 +100,7 @@ function makeGrassTexture() {
 
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.repeat.set(4, 4);
+  t.repeat.set(5, 5);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 8;
   return t;
@@ -117,7 +110,7 @@ function makeGrassTexture() {
    PLANETA
    ============================================================ */
 const planet = new THREE.Mesh(
-  new THREE.SphereGeometry(CFG.planetRadius, 96, 96),
+  new THREE.SphereGeometry(CFG.planetRadius, 128, 128),
   new THREE.MeshStandardMaterial({
     map: makeGrassTexture(),
     roughness: 0.95,
@@ -127,7 +120,7 @@ const planet = new THREE.Mesh(
 scene.add(planet);
 
 /* ============================================================
-   UTILIDADES DE GEOMETRÍA
+   UTILIDAD: colorear geometría
    ============================================================ */
 function setVertexColor(geo, hex) {
   const color = new THREE.Color(hex);
@@ -143,18 +136,16 @@ function setVertexColor(geo, hex) {
 }
 
 /* ============================================================
-   GIRASOL (altura ~1.0 u = cintura del personaje)
+   GIRASOL
    ============================================================ */
 function buildSunflower(s = 1) {
   const parts = [];
   const stemH = 0.95 * s;
 
-  // Tallo
   const stem = new THREE.CylinderGeometry(0.012 * s, 0.024 * s, stemH, 5, 1);
   stem.translate(0, stemH / 2, 0);
   parts.push(setVertexColor(stem, 0x2a5a18));
 
-  // Dos hojas
   for (let i = 0; i < 2; i++) {
     const leaf = new THREE.PlaneGeometry(0.16 * s, 0.1 * s);
     leaf.rotateX(-Math.PI / 2 - 0.35);
@@ -163,13 +154,11 @@ function buildSunflower(s = 1) {
     parts.push(setVertexColor(leaf, 0x3a7a28));
   }
 
-  // Respaldo verde (detrás de pétalos)
   const back = new THREE.CircleGeometry(0.16 * s, 14);
   back.rotateX(-Math.PI / 2);
   back.translate(0, stemH + 0.008, 0);
   parts.push(setVertexColor(back, 0x2a4a18));
 
-  // Pétalos amarillos (12)
   const petalCount = 12;
   for (let i = 0; i < petalCount; i++) {
     const petal = new THREE.PlaneGeometry(0.075 * s, 0.22 * s);
@@ -180,7 +169,6 @@ function buildSunflower(s = 1) {
     parts.push(setVertexColor(petal, 0xffcc22));
   }
 
-  // Centro oscuro
   const center = new THREE.CircleGeometry(0.095 * s, 14);
   center.rotateX(-Math.PI / 2);
   center.translate(0, stemH + 0.026, 0);
@@ -190,18 +178,16 @@ function buildSunflower(s = 1) {
 }
 
 /* ============================================================
-   ROSA (altura ~0.6 u = rodilla del personaje)
+   ROSA AMARILLA
    ============================================================ */
-function buildRose(s = 1) {
+function buildYellowRose(s = 1) {
   const parts = [];
   const stemH = 0.55 * s;
 
-  // Tallo
   const stem = new THREE.CylinderGeometry(0.01 * s, 0.018 * s, stemH, 5, 1);
   stem.translate(0, stemH / 2, 0);
   parts.push(setVertexColor(stem, 0x2a5a18));
 
-  // Dos hojas
   for (let i = 0; i < 2; i++) {
     const leaf = new THREE.PlaneGeometry(0.1 * s, 0.06 * s);
     leaf.rotateX(-Math.PI / 2 - 0.3);
@@ -212,40 +198,121 @@ function buildRose(s = 1) {
 
   const headY = stemH;
 
-  // Capa exterior (5 pétalos grandes, muy abiertos)
   for (let i = 0; i < 5; i++) {
     const petal = new THREE.PlaneGeometry(0.1 * s, 0.16 * s);
     petal.rotateX(-Math.PI / 2 + 0.9);
     petal.translate(0, 0, 0.09 * s);
     petal.rotateY((i / 5) * Math.PI * 2);
     petal.translate(0, headY + 0.04 * s, 0);
-    parts.push(setVertexColor(petal, 0xa8152e));
+    parts.push(setVertexColor(petal, 0xffe066));
   }
 
-  // Capa media (5 pétalos, más cerrados)
   for (let i = 0; i < 5; i++) {
     const petal = new THREE.PlaneGeometry(0.085 * s, 0.13 * s);
     petal.rotateX(-Math.PI / 2 + 0.5);
     petal.translate(0, 0, 0.07 * s);
     petal.rotateY((i / 5) * Math.PI * 2 + 0.4);
     petal.translate(0, headY + 0.09 * s, 0);
-    parts.push(setVertexColor(petal, 0xc0183a));
+    parts.push(setVertexColor(petal, 0xffcc22));
   }
 
-  // Capa interior (4 pétalos, formando el capullo)
   for (let i = 0; i < 4; i++) {
     const petal = new THREE.PlaneGeometry(0.07 * s, 0.1 * s);
     petal.rotateX(-Math.PI / 2 + 0.2);
     petal.translate(0, 0, 0.05 * s);
     petal.rotateY((i / 4) * Math.PI * 2 + 0.9);
     petal.translate(0, headY + 0.145 * s, 0);
-    parts.push(setVertexColor(petal, 0xd61e44));
+    parts.push(setVertexColor(petal, 0xffb800));
   }
 
-  // Yema central
   const bud = new THREE.SphereGeometry(0.035 * s, 8, 8);
   bud.translate(0, headY + 0.15 * s, 0);
-  parts.push(setVertexColor(bud, 0x8a0a20));
+  parts.push(setVertexColor(bud, 0xd49a00));
+
+  return mergeGeometries(parts);
+}
+
+/* ============================================================
+   ORQUÍDEA AMARILLA
+   ============================================================ */
+function buildYellowOrchid(s = 1) {
+  const parts = [];
+  const stemH = 0.7 * s;
+
+  const stem = new THREE.CylinderGeometry(0.008 * s, 0.014 * s, stemH, 5, 1);
+  stem.translate(0, stemH / 2, 0);
+  parts.push(setVertexColor(stem, 0x3d6b22));
+
+  const leaf1 = new THREE.PlaneGeometry(0.11 * s, 0.06 * s);
+  leaf1.rotateX(-Math.PI / 2 - 0.15);
+  leaf1.translate(0.06 * s, stemH * 0.3, 0);
+  leaf1.rotateY(0.6);
+  parts.push(setVertexColor(leaf1, 0x3d6b22));
+
+  const headY = stemH;
+  const headTilt = 0.15;
+
+  const sepalAngles = [0, 2.094, -2.094];
+  for (const a of sepalAngles) {
+    const sepal = new THREE.PlaneGeometry(0.07 * s, 0.13 * s);
+    sepal.rotateX(-Math.PI / 2 - headTilt);
+    sepal.translate(0, 0, 0.065 * s);
+    sepal.rotateY(a);
+    sepal.translate(0, headY + 0.02 * s, 0);
+    parts.push(setVertexColor(sepal, 0xfff0a0));
+  }
+
+  const lateralAngles = [1.05, -1.05];
+  for (const a of lateralAngles) {
+    const petal = new THREE.PlaneGeometry(0.09 * s, 0.14 * s);
+    petal.rotateX(-Math.PI / 2 - headTilt);
+    petal.translate(0, 0, 0.07 * s);
+    petal.rotateY(a);
+    petal.translate(0, headY + 0.025 * s, 0);
+    parts.push(setVertexColor(petal, 0xffe066));
+  }
+
+  const lip = new THREE.PlaneGeometry(0.11 * s, 0.1 * s);
+  lip.rotateX(-Math.PI / 2 + 0.5);
+  lip.translate(0, 0, 0.08 * s);
+  lip.rotateY(Math.PI);
+  lip.translate(0, headY + 0.015 * s, 0);
+  parts.push(setVertexColor(lip, 0xffcc22));
+
+  const col = new THREE.SphereGeometry(0.028 * s, 10, 10);
+  col.translate(0, headY + 0.03 * s, 0);
+  parts.push(setVertexColor(col, 0xffaa00));
+
+  return mergeGeometries(parts);
+}
+
+/* ============================================================
+   MARGARITA AMARILLA
+   ============================================================ */
+function buildYellowDaisy(s = 1) {
+  const parts = [];
+  const stemH = 0.45 * s;
+
+  const stem = new THREE.CylinderGeometry(0.008 * s, 0.014 * s, stemH, 5, 1);
+  stem.translate(0, stemH / 2, 0);
+  parts.push(setVertexColor(stem, 0x3a7a28));
+
+  const headY = stemH;
+  const petalCount = 10;
+
+  for (let i = 0; i < petalCount; i++) {
+    const petal = new THREE.PlaneGeometry(0.045 * s, 0.11 * s);
+    petal.rotateX(-Math.PI / 2);
+    petal.translate(0, 0, 0.06 * s);
+    petal.rotateY((i / petalCount) * Math.PI * 2);
+    petal.translate(0, headY, 0);
+    parts.push(setVertexColor(petal, 0xffe066));
+  }
+
+  const center = new THREE.CircleGeometry(0.04 * s, 10);
+  center.rotateX(-Math.PI / 2);
+  center.translate(0, headY + 0.005, 0);
+  parts.push(setVertexColor(center, 0xffb800));
 
   return mergeGeometries(parts);
 }
@@ -261,12 +328,101 @@ function buildGrassTuft(s = 1) {
     blade.rotateZ((Math.random() - 0.5) * 0.7);
     blade.rotateY(Math.random() * Math.PI * 2);
     blade.translate(
-      (Math.random() - 0.5) * 0.06 * s,
-      0,
+      (Math.random() - 0.5) * 0.06 * s, 0,
       (Math.random() - 0.5) * 0.06 * s
     );
     parts.push(setVertexColor(blade, 0x4a8a2a));
   }
+  return mergeGeometries(parts);
+}
+
+/* ============================================================
+   MARIPOSA MEJORADA (más grande y reconocible)
+   ============================================================ */
+function buildButterfly(s = 1) {
+  const parts = [];
+
+  // Cuerpo más grueso y alargado
+  const body = new THREE.CylinderGeometry(0.018 * s, 0.014 * s, 0.28 * s, 8);
+  body.rotateZ(Math.PI / 2);
+  parts.push(setVertexColor(body, 0x1a1208));
+
+  // Cabeza
+  const head = new THREE.SphereGeometry(0.022 * s, 8, 8);
+  head.translate(0.14 * s, 0, 0);
+  parts.push(setVertexColor(head, 0x2a1a0a));
+
+  // Alas superiores (más grandes y con forma)
+  for (let side of [-1, 1]) {
+    const wingTop = new THREE.PlaneGeometry(0.32 * s, 0.24 * s);
+    wingTop.translate(side * 0.18 * s, 0.08 * s, 0);
+    parts.push(setVertexColor(wingTop, 0xffd54a));
+  }
+
+  // Alas inferiores
+  for (let side of [-1, 1]) {
+    const wingBot = new THREE.PlaneGeometry(0.24 * s, 0.18 * s);
+    wingBot.translate(side * 0.14 * s, -0.08 * s, 0);
+    parts.push(setVertexColor(wingBot, 0xffe88a));
+  }
+
+  // Pequeño detalle interior de las alas
+  for (let side of [-1, 1]) {
+    const detail = new THREE.PlaneGeometry(0.12 * s, 0.10 * s);
+    detail.translate(side * 0.16 * s, 0.05 * s, 0.01);
+    parts.push(setVertexColor(detail, 0xffb800));
+  }
+
+  return mergeGeometries(parts);
+}
+
+/* ============================================================
+   ÁRBOL GRANDE
+   ============================================================ */
+function buildTree() {
+  const parts = [];
+
+  const trunk = new THREE.CylinderGeometry(0.35, 0.6, 3.6, 14);
+  trunk.translate(0, 1.8, 0);
+  parts.push(setVertexColor(trunk, 0x5a3520));
+
+  const rootGeo = new THREE.CylinderGeometry(0.85, 1.1, 0.4, 14);
+  rootGeo.translate(0, 0.2, 0);
+  parts.push(setVertexColor(rootGeo, 0x4a2a15));
+
+  const branches = [
+    { len: 1.4, tilt: 0.9, yaw: 0, y: 3.6, base: 0.18 },
+    { len: 1.3, tilt: 0.85, yaw: Math.PI * 0.7, y: 3.3, base: 0.16 },
+    { len: 1.5, tilt: 1.0, yaw: Math.PI * 1.4, y: 3.8, base: 0.16 },
+    { len: 1.2, tilt: 0.75, yaw: Math.PI * 0.35, y: 4.1, base: 0.14 },
+  ];
+
+  for (const b of branches) {
+    const branch = new THREE.CylinderGeometry(b.base * 0.5, b.base, b.len, 8);
+    branch.translate(0, b.len / 2, 0);
+    branch.rotateZ(b.tilt);
+    branch.rotateY(b.yaw);
+    branch.translate(0, b.y, 0);
+    parts.push(setVertexColor(branch, 0x4d2d18));
+  }
+
+  const canopyCenters = [
+    { x:  0.0, y: 4.9, z:  0.0, r: 1.55, c: 0x2d5a1e },
+    { x:  1.2, y: 4.6, z:  0.4, r: 1.25, c: 0x356a24 },
+    { x: -1.3, y: 4.5, z: -0.5, r: 1.30, c: 0x2a5220 },
+    { x:  0.5, y: 5.9, z: -1.0, r: 1.10, c: 0x3a7a28 },
+    { x: -0.7, y: 5.7, z:  0.9, r: 1.15, c: 0x316526 },
+    { x:  0.0, y: 6.4, z:  0.0, r: 1.00, c: 0x3d8530 },
+    { x:  1.6, y: 5.4, z: -0.9, r: 0.95, c: 0x2b5a1a },
+    { x: -1.5, y: 5.6, z:  0.7, r: 0.90, c: 0x356a24 },
+  ];
+
+  for (const s of canopyCenters) {
+    const leaf = new THREE.SphereGeometry(s.r, 16, 16);
+    leaf.translate(s.x, s.y, s.z);
+    parts.push(setVertexColor(leaf, s.c));
+  }
+
   return mergeGeometries(parts);
 }
 
@@ -277,9 +433,9 @@ const _up0 = new THREE.Vector3(0, 1, 0);
 const _dummy = new THREE.Object3D();
 const _goldenAngle = Math.PI * (3 - Math.sqrt(5));
 
-function distributeInstances(geometry, count, baseScale, avoidPoints = [], avoidRadius = 1.8) {
-  // 1. Generar posiciones con Fibonacci + jitter y filtrar
+function distributeInstances(geometry, count, baseScale, avoidPoints = [], avoidRadius = 2.2) {
   const positions = [];
+
   for (let i = 0; i < count; i++) {
     const idx = i + 0.5;
     const y = 1 - (idx / count) * 2;
@@ -301,7 +457,6 @@ function distributeInstances(geometry, count, baseScale, avoidPoints = [], avoid
     if (!skip) positions.push({ up, pos });
   }
 
-  // 2. Material único compartido por todas las instancias
   const material = new THREE.MeshStandardMaterial({
     vertexColors: true,
     roughness: 0.78,
@@ -309,7 +464,6 @@ function distributeInstances(geometry, count, baseScale, avoidPoints = [], avoid
     side: THREE.DoubleSide,
   });
 
-  // 3. InstancedMesh
   const mesh = new THREE.InstancedMesh(geometry, material, positions.length);
 
   positions.forEach((p, i) => {
@@ -331,112 +485,269 @@ function distributeInstances(geometry, count, baseScale, avoidPoints = [], avoid
 }
 
 /* ============================================================
-   CARTEL DE MADERA — a la altura de los ojos
+   CARTEL DE MADERA
    ============================================================ */
-const signPos = new THREE.Vector3(
-  CFG.planetRadius * Math.cos(CFG.signTheta),
-  0,
-  CFG.planetRadius * Math.sin(CFG.signTheta)
-);
-
-function buildSign() {
+function buildSignContent(lines, width = 2.8, height = 1.5, postHeight = 2.85, boardCenterY = 1.9) {
   const group = new THREE.Group();
 
   const woodDark  = new THREE.MeshStandardMaterial({ color: 0x4a2410, roughness: 0.9 });
   const woodLight = new THREE.MeshStandardMaterial({ color: 0x7a4520, roughness: 0.85 });
 
-  // Postes laterales
-  for (const dx of [-0.8, 0.8]) {
+  const postOffset = width / 2 - 0.15;
+
+  for (const dx of [-postOffset, postOffset]) {
     const post = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.065, 0.075, 2.15, 10),
+      new THREE.CylinderGeometry(0.075, 0.09, postHeight, 10),
       woodLight
     );
-    post.position.set(dx, 1.075, 0);
+    post.position.set(dx, postHeight / 2, 0);
     group.add(post);
   }
 
-  // Tabla principal
   const board = new THREE.Mesh(
-    new THREE.BoxGeometry(2.1, 1.15, 0.1),
+    new THREE.BoxGeometry(width, height, 0.12),
     woodDark
   );
-  board.position.set(0, CFG.signBoardHeight, 0);
+  board.position.set(0, boardCenterY, 0);
   group.add(board);
 
-  // === Canvas con el texto ===
+  const canvasW = 1200;
+  const canvasH = Math.round(canvasW * (height / width));
   const c = document.createElement('canvas');
-  c.width = 1024;
-  c.height = 560;
+  c.width = canvasW;
+  c.height = canvasH;
   const ctx = c.getContext('2d');
 
-  const g = ctx.createLinearGradient(0, 0, 0, 560);
+  const g = ctx.createLinearGradient(0, 0, 0, canvasH);
   g.addColorStop(0, '#f8ecd0');
   g.addColorStop(1, '#e6caa0');
   ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 1024, 560);
+  ctx.fillRect(0, 0, canvasW, canvasH);
 
   ctx.strokeStyle = '#6b3a1f';
-  ctx.lineWidth = 10;
-  ctx.strokeRect(18, 18, 1024 - 36, 560 - 36);
+  ctx.lineWidth = 12;
+  ctx.strokeRect(20, 20, canvasW - 40, canvasH - 40);
 
-  const lines = ['Te amo mucho,', 'esmeraldita,', 'eres mi mundo entero,', 'te amo.'];
   ctx.fillStyle = '#3a1a08';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  const lh = 115;
-  const startY = 260 - ((lines.length - 1) * lh) / 2;
-  lines.forEach((line, i) => {
-    ctx.font = i === lines.length - 1
-      ? 'italic bold 84px Georgia, serif'
-      : 'italic bold 68px Georgia, serif';
-    ctx.fillText(line, 512, startY + i * lh);
-  });
+  const baseFont = Math.min(canvasH / (lines.length + 1.4), canvasW / 18);
+  const lineHeight = baseFont * 1.25;
+  const startY = canvasH / 2 - ((lines.length - 1) * lineHeight) / 2;
 
-  ctx.fillStyle = '#c13a56';
-  ctx.font = '52px Georgia, serif';
-  ctx.fillText('❤', 512, 505);
+  lines.forEach((line, i) => {
+    const isLast = i === lines.length - 1;
+    ctx.font = `italic bold ${Math.round(baseFont * (isLast ? 0.95 : 1))}px Georgia, serif`;
+    ctx.fillText(line, canvasW / 2, startY + i * lineHeight);
+  });
 
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 8;
 
   const face = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.98, 1.03),
+    new THREE.PlaneGeometry(width - 0.15, height - 0.15),
     new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 })
   );
-  face.position.set(0, CFG.signBoardHeight, 0.055);
+  face.position.set(0, boardCenterY, 0.065);
   group.add(face);
 
   return group;
 }
 
-function placeSign(sign) {
-  const up = signPos.clone().normalize();
-  // Dirección de "cara" del cartel: tangente en +theta (hacia donde viene el jugador)
-  const face = new THREE.Vector3(
-    -Math.sin(CFG.signTheta), 0, Math.cos(CFG.signTheta)
-  ).normalize();
-  const right = new THREE.Vector3().crossVectors(up, face).normalize();
-  const face2 = new THREE.Vector3().crossVectors(right, up).normalize();
+/* ============================================================
+   POSICIONAMIENTO SOBRE LA ESFERA
+   ============================================================ */
+function placeOnSphere(object, theta, phi, faceTangentTheta) {
+  const pos = new THREE.Vector3(
+    Math.cos(phi) * Math.cos(theta),
+    Math.sin(phi),
+    Math.cos(phi) * Math.sin(theta)
+  ).multiplyScalar(CFG.planetRadius);
 
-  const m = new THREE.Matrix4().makeBasis(right, up, face2);
-  sign.quaternion.setFromRotationMatrix(m);
-  sign.position.copy(signPos);
+  object.position.copy(pos);
+
+  const up = pos.clone().normalize();
+
+  const faceDir = new THREE.Vector3(
+    -Math.sin(faceTangentTheta),
+    0,
+    Math.cos(faceTangentTheta)
+  ).normalize();
+
+  faceDir.sub(up.clone().multiplyScalar(faceDir.dot(up))).normalize();
+
+  const right = new THREE.Vector3().crossVectors(up, faceDir).normalize();
+  const m = new THREE.Matrix4().makeBasis(right, up, faceDir);
+  object.quaternion.setFromRotationMatrix(m);
+
+  return pos;
 }
 
-const sign = buildSign();
-placeSign(sign);
-scene.add(sign);
+/* ============================================================
+   11 CARTELES BIEN ESPARCIDOS POR TODO EL PLANETA
+   ============================================================ */
+const SIGNS_CONFIG = [
+  // 1. Principal (cerca del inicio)
+  {
+    theta: 0.15, phi: 0.08,
+    lines: ['Te amo mucho, Esmeraldita.', 'Eres mi mundo entero.', 'Feliz día de las flores amarillas', '❤️'],
+    width: 3.4, height: 1.9,
+  },
+  // 2
+  {
+    theta: 1.9, phi: -0.55,
+    lines: ['Aunque los kilómetros nos separen,', 'mi corazón siempre vuela hacia ti.', 'Cada flor amarilla que ves aquí', 'es un "te amo" que planté para ti.'],
+    width: 2.7, height: 1.55,
+  },
+  // 3
+  {
+    theta: 3.5, phi: 0.65,
+    lines: ['La distancia no es un obstáculo,', 'es solo un capítulo de nuestra historia.', 'Construyamos juntos este sueño,', 'tú y yo, sin importar la distancia.'],
+    width: 2.7, height: 1.55,
+  },
+  // 4
+  {
+    theta: 5.1, phi: -0.75,
+    lines: ['En cada amanecer pienso en ti,', 'en cada atardecer te extraño más.', 'Eres mi sol, mi luna y mis estrellas,', 'mi razón para seguir y para amar.'],
+    width: 2.7, height: 1.55,
+  },
+  // 5
+  {
+    theta: 0.95, phi: 0.95,
+    lines: ['Si me preguntas cuánto te amo,', 'te diría que más que ayer,', 'pero menos que mañana,', 'y más que a cualquier distancia.'],
+    width: 2.6, height: 1.5,
+  },
+  // 6
+  {
+    theta: 5.9, phi: 0.35,
+    lines: ['Cada noche miro las estrellas', 'y sé que tú ves las mismas.', 'Aunque estemos lejos,', 'nuestros corazones laten juntos.'],
+    width: 2.6, height: 1.5,
+  },
+  // 7 — NUEVO
+  {
+    theta: 2.7, phi: -0.25,
+    lines: ['Este planeta es solo un regalo.', 'El verdadero jardín está en mi pecho,', 'y todas las flores llevan tu nombre.'],
+    width: 2.7, height: 1.5,
+  },
+  // 8 — NUEVO
+  {
+    theta: 4.3, phi: 0.45,
+    lines: ['No hay distancia que apague', 'lo que siento por ti.', 'Eres mi hogar, mi paz y mi destino.'],
+    width: 2.5, height: 1.4,
+  },
+  // 9 — NUEVO
+  {
+    theta: 1.2, phi: -0.9,
+    lines: ['Cuando el viento mueva estas flores,', 'recuerda que también mueve mis pensamientos', 'y todos vuelan directo hacia ti.'],
+    width: 2.8, height: 1.55,
+  },
+  // 10 — NUEVO
+  {
+    theta: 6.4, phi: -0.4,
+    lines: ['Te elegí ayer, te elijo hoy', 'y te seguiré eligiendo mañana.', 'Siempre tú, Esmeraldita.'],
+    width: 2.6, height: 1.45,
+  },
+  // 11 — NUEVO
+  {
+    theta: 3.9, phi: 0.15,
+    lines: ['Si algún día sientes que estás sola,', 'camina por este planeta.', 'Aquí siempre habrá un cartel', 'recordándote cuánto te amo.'],
+    width: 2.8, height: 1.6,
+  },
+];
+
+const signPositions = [];
+
+SIGNS_CONFIG.forEach((cfg) => {
+  const sign = buildSignContent(cfg.lines, cfg.width, cfg.height, 2.85, 1.9);
+  const pos = placeOnSphere(sign, cfg.theta, cfg.phi, cfg.theta);
+  scene.add(sign);
+  signPositions.push(pos);
+});
 
 /* ============================================================
-   POBLAR EL PLANETA (evitando zona del cartel)
+   ÁRBOL GRANDE (escala 1.35)
    ============================================================ */
-const avoidPoints = [signPos.clone()];
+const treeGeo = buildTree();
+const treeMat = new THREE.MeshStandardMaterial({
+  vertexColors: true,
+  roughness: 0.92,
+  metalness: 0.0,
+});
+const tree = new THREE.Mesh(treeGeo, treeMat);
+tree.scale.setScalar(1.35);
 
-scene.add(distributeInstances(buildSunflower(1), CFG.sunflowersCount, 0.95, avoidPoints, 1.8));
-scene.add(distributeInstances(buildRose(1),      CFG.rosesCount,      1.05, avoidPoints, 1.8));
-scene.add(distributeInstances(buildGrassTuft(1), CFG.grassCount,      1.0,  avoidPoints, 1.8));
+const treePos = placeOnSphere(tree, -0.35, 0.08, -0.35);
+tree.rotateY(Math.random() * Math.PI * 2);
+scene.add(tree);
+
+/* ============================================================
+   POBLAR EL PLANETA CON FLORES
+   ============================================================ */
+const avoidPoints = [...signPositions, treePos];
+
+scene.add(distributeInstances(buildSunflower(1),     CFG.sunflowersCount, 0.95, avoidPoints, 3.2));
+scene.add(distributeInstances(buildYellowRose(1),    CFG.rosesCount,      1.05, avoidPoints, 2.6));
+scene.add(distributeInstances(buildYellowOrchid(1),  CFG.orchidsCount,    1.05, avoidPoints, 2.6));
+scene.add(distributeInstances(buildYellowDaisy(1),   CFG.daisiesCount,    1.00, avoidPoints, 2.6));
+scene.add(distributeInstances(buildGrassTuft(1),     CFG.grassCount,      1.00, avoidPoints, 2.6));
+
+/* ============================================================
+   MARIPOSAS MEJORADAS
+   ============================================================ */
+const butterflyGeo = buildButterfly(1);
+const butterflyMat = new THREE.MeshStandardMaterial({
+  vertexColors: true,
+  roughness: 0.55,
+  metalness: 0.08,
+  side: THREE.DoubleSide,
+  transparent: true,
+  opacity: 0.95,
+});
+
+const butterflyMesh = new THREE.InstancedMesh(butterflyGeo, butterflyMat, CFG.butterfliesCount);
+const butterflyData = [];
+
+for (let i = 0; i < CFG.butterfliesCount; i++) {
+  const y = Math.random() * 2 - 1;
+  const r = Math.sqrt(Math.max(0, 1 - y * y));
+  const theta = Math.random() * Math.PI * 2;
+
+  const up = new THREE.Vector3(
+    Math.cos(theta) * r,
+    y,
+    Math.sin(theta) * r
+  ).normalize();
+
+  // Altura de vuelo agradable
+  const height = 0.9 + Math.random() * 1.8;
+  const pos = up.clone().multiplyScalar(CFG.planetRadius + height);
+
+  _dummy.position.copy(pos);
+  const q = new THREE.Quaternion().setFromUnitVectors(_up0, up);
+  _dummy.quaternion.copy(q);
+  _dummy.rotateY(Math.random() * Math.PI * 2);
+
+  // Escala más grande y variada
+  const sc = 1.15 + Math.random() * 0.7;
+  _dummy.scale.setScalar(sc);
+  _dummy.updateMatrix();
+  butterflyMesh.setMatrixAt(i, _dummy.matrix);
+
+  butterflyData.push({
+    up: up.clone(),
+    baseHeight: height,
+    phase: Math.random() * Math.PI * 2,
+    speed: 0.5 + Math.random() * 1.1,
+    scale: sc,
+    flapSpeed: 3.5 + Math.random() * 2.5,
+  });
+}
+
+butterflyMesh.instanceMatrix.needsUpdate = true;
+butterflyMesh.frustumCulled = false;
+scene.add(butterflyMesh);
 
 /* ============================================================
    CAMPO DE ESTRELLAS
@@ -447,7 +758,7 @@ function buildStars() {
   const sizes     = new Float32Array(CFG.starsCount);
 
   for (let i = 0; i < CFG.starsCount; i++) {
-    const r = 60 + Math.random() * 500;
+    const r = 100 + Math.random() * 500;
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(2 * Math.random() - 1);
 
@@ -455,7 +766,6 @@ function buildStars() {
     positions[i * 3 + 1] = r * Math.cos(phi);
     positions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
 
-    // Temperatura de color
     const t = Math.random();
     let cr, cg, cb;
     if (t < 0.60)      { cr = 1.00; cg = 1.00; cb = 1.00; }
@@ -467,7 +777,6 @@ function buildStars() {
     colors[i * 3]     = cr * b;
     colors[i * 3 + 1] = cg * b;
     colors[i * 3 + 2] = cb * b;
-
     sizes[i] = 0.8 + Math.random() * 1.7;
   }
 
@@ -477,9 +786,7 @@ function buildStars() {
   geo.setAttribute('size',     new THREE.BufferAttribute(sizes, 1));
 
   const mat = new THREE.ShaderMaterial({
-    uniforms: {
-      uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-    },
+    uniforms: { uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) } },
     vertexShader: /* glsl */`
       attribute float size;
       varying vec3 vColor;
@@ -509,10 +816,11 @@ function buildStars() {
 
   return new THREE.Points(geo, mat);
 }
+
 scene.add(buildStars());
 
 /* ============================================================
-   ESTADO DEL JUGADOR
+   JUGADOR
    ============================================================ */
 const player = {
   position: new THREE.Vector3(),
@@ -523,7 +831,6 @@ const player = {
   lookTouch: { active: false, id: null, lastX: 0, lastY: 0 },
 };
 
-// Posición inicial (sobre el ecuador, cerca del cartel)
 const _R0 = CFG.planetRadius + CFG.eyeHeight;
 player.position.set(
   _R0 * Math.cos(CFG.startTheta), 0, _R0 * Math.sin(CFG.startTheta)
@@ -531,7 +838,7 @@ player.position.set(
 player.forward.set(
   Math.sin(CFG.startTheta), 0, -Math.cos(CFG.startTheta)
 ).normalize();
-player.pitch = -0.06;
+player.pitch = -0.05;
 
 /* ============================================================
    CONTROLES — TECLADO
@@ -544,6 +851,7 @@ window.addEventListener('keydown', (e) => {
   if (k === 'd' || k === 'arrowright') player.keys.d = true;
   if (k === 'shift')                   player.keys.shift = true;
 });
+
 window.addEventListener('keyup', (e) => {
   const k = e.key.toLowerCase();
   if (k === 'w' || k === 'arrowup')    player.keys.w = false;
@@ -554,7 +862,7 @@ window.addEventListener('keyup', (e) => {
 });
 
 /* ============================================================
-   CONTROLES — MOUSE (pointer lock)
+   CONTROLES — MOUSE
    ============================================================ */
 let pointerLocked = false;
 
@@ -574,7 +882,7 @@ document.addEventListener('mousemove', (e) => {
 });
 
 /* ============================================================
-   CONTROLES — TÁCTIL (doble zona: joystick + mirar)
+   CONTROLES — TÁCTIL
    ============================================================ */
 function isTouchDevice() {
   return ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
@@ -587,12 +895,11 @@ if (isTouchDevice()) {
   renderer.domElement.addEventListener('touchstart', (e) => {
     for (const t of e.changedTouches) {
       const x = t.clientX;
-      const y = t.clientY;
       if (x < window.innerWidth / 2 && !player.moveTouch.active) {
         player.moveTouch.active = true;
         player.moveTouch.id = t.identifier;
         player.moveTouch.startX = x;
-        player.moveTouch.startY = y;
+        player.moveTouch.startY = t.clientY;
         player.moveTouch.x = 0;
         player.moveTouch.y = 0;
         joyBase.classList.add('active');
@@ -600,7 +907,7 @@ if (isTouchDevice()) {
         player.lookTouch.active = true;
         player.lookTouch.id = t.identifier;
         player.lookTouch.lastX = x;
-        player.lookTouch.lastY = y;
+        player.lookTouch.lastY = t.clientY;
       }
     }
     e.preventDefault();
@@ -618,7 +925,6 @@ if (isTouchDevice()) {
         const ny = len > 0 ? dy / len : 0;
         player.moveTouch.x = nx * (clamped / maxR);
         player.moveTouch.y = ny * (clamped / maxR);
-        // Visual
         joyKnob.style.transform = `translate(${nx * clamped}px, ${ny * clamped}px)`;
       } else if (t.identifier === player.lookTouch.id) {
         const dx = t.clientX - player.lookTouch.lastX;
@@ -648,6 +954,7 @@ if (isTouchDevice()) {
     }
     e.preventDefault();
   };
+
   renderer.domElement.addEventListener('touchend', endTouch, { passive: false });
   renderer.domElement.addEventListener('touchcancel', endTouch, { passive: false });
 }
@@ -657,33 +964,26 @@ if (isTouchDevice()) {
    ============================================================ */
 function rotateView(dYaw, dPitch) {
   const up = player.position.clone().normalize();
-  const q  = new THREE.Quaternion().setFromAxisAngle(up, dYaw);
+  const q = new THREE.Quaternion().setFromAxisAngle(up, dYaw);
   player.forward.applyQuaternion(q).normalize();
   player.pitch += dPitch;
-  player.pitch = Math.max(
-    -Math.PI / 2 + 0.05,
-    Math.min(Math.PI / 2 - 0.05, player.pitch)
-  );
+  player.pitch = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, player.pitch));
 }
 
 /* ============================================================
-   ACTUALIZAR JUGADOR (movimiento sobre la esfera)
+   ACTUALIZAR JUGADOR
    ============================================================ */
 function updatePlayer(dt) {
-  // 1. "Arriba" local = radial
   const up = player.position.clone().normalize();
 
-  // 2. Re-proyectar forward al plano tangente
   player.forward.sub(up.clone().multiplyScalar(player.forward.dot(up)));
   if (player.forward.lengthSq() < 1e-6) {
     player.forward.set(1, 0, 0).sub(up.clone().multiplyScalar(up.x)).normalize();
   }
   player.forward.normalize();
 
-  // 3. Right = up × forward
-  const right = new THREE.Vector3().crossVectors(up, player.forward).normalize();
+  const right = new THREE.Vector3().crossVectors(player.forward, up).normalize();
 
-  // 4. Input
   let moveX = 0, moveZ = 0;
   if (player.keys.w) moveZ += 1;
   if (player.keys.s) moveZ -= 1;
@@ -695,7 +995,6 @@ function updatePlayer(dt) {
     moveZ -= player.moveTouch.y;
   }
 
-  // 5. Dirección de movimiento
   const move = new THREE.Vector3();
   move.addScaledVector(player.forward, moveZ);
   move.addScaledVector(right, moveX);
@@ -706,7 +1005,6 @@ function updatePlayer(dt) {
     player.position.addScaledVector(move, speed * dt);
   }
 
-  // 6. Re-proyectar a la superficie + altura de ojos
   player.position.normalize().multiplyScalar(CFG.planetRadius + CFG.eyeHeight);
 }
 
@@ -716,6 +1014,7 @@ function updatePlayer(dt) {
 function updateCamera() {
   const up = player.position.clone().normalize();
   const forward = player.forward.clone();
+
   const lookDir = new THREE.Vector3()
     .addScaledVector(forward, Math.cos(player.pitch))
     .addScaledVector(up, Math.sin(player.pitch));
@@ -736,6 +1035,28 @@ function animate() {
 
   updatePlayer(dt);
   updateCamera();
+
+  // Animación mejorada de mariposas (aleteo más natural)
+  const t = clock.elapsedTime;
+  butterflyData.forEach((b, i) => {
+    const height = b.baseHeight + Math.sin(t * b.speed + b.phase) * 0.4;
+    const pos = b.up.clone().multiplyScalar(CFG.planetRadius + height);
+
+    _dummy.position.copy(pos);
+
+    const q = new THREE.Quaternion().setFromUnitVectors(_up0, b.up);
+    _dummy.quaternion.copy(q);
+
+    // Rotación suave + aleteo
+    _dummy.rotateY(t * 1.4 + b.phase);
+    _dummy.rotateZ(Math.sin(t * b.flapSpeed + b.phase) * 0.35);
+    _dummy.rotateX(Math.sin(t * b.flapSpeed * 0.7 + b.phase) * 0.15);
+
+    _dummy.scale.setScalar(b.scale);
+    _dummy.updateMatrix();
+    butterflyMesh.setMatrixAt(i, _dummy.matrix);
+  });
+  butterflyMesh.instanceMatrix.needsUpdate = true;
 
   renderer.render(scene, camera);
 }
@@ -758,4 +1079,4 @@ setTimeout(() => {
   document.getElementById('hud').classList.remove('hidden');
 }, 500);
 
-animate();
+animate();v
